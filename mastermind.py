@@ -15,35 +15,43 @@ class Code:
     def __init__(self, values):
         self.code = []
         for indx in range(len(values)):
-            self.code[indx] = values[indx] 
+            self.code.append(values[indx])
+    def randomize(self, length, choices):
+        self.code=[]
+        for indx in range(length):
+            self.code.append(choices[randrange(0, len(choices))])
     def evaluate(self, guess):
-        eval = Evaluation(0,0)
-        for valx in guess
-            inplace = false
-            if ( guess[valx] == self.code[valx] )
+        eval = Evaluation()
+        for valx in range(len(guess)):
+            #print ("{} gess {} code {}".format(valx, guess[valx], self.code[valx]))
+            if  guess[valx] == self.code[valx] :
                 eval.inplace += 1
-                inplace = true
+                print "in place"
                 continue
             
-            if (guess[indx] in self.code)
+            if guess[valx] in self.code :
                 eval.existing += 1
                 continue
         return eval
     def display(self):
-        print self.code
+        print (self.code)
 
 
 class Evaluation:
-    def __init__(self, inplace, existing):
-        self.inplace = inplace
-        self.existing = existing
+    def __init__(self):
+        self.inplace = 0
+        self.existing = 0
     
     def display(self):
-        print "Inplace : " + self.inplace + " , Existing : " + self.existing
+        print ("Inplace : {}, Existing : {}".format(self.inplace, self.existing))
 
 #secretcode = Code({colors[randrange(0, 6)],colors[randrange(0, 6)],colors[randrange(0, 6)],colors[randrange(0, 6)]]})
-secretcode = Code({"red","yellow","orange","orange"})
+secretcode = Code(['red', 'yellow', 'orange', 'orange'])
 
 secretcode.display()
 
-secretcode.eval({'red', 'blue', 'green', 'yellow'}).display()
+#secretcode.evaluate(['red', 'orange', 'blue', 'yellow']).display()
+for indx in range(10) :
+    guess = Code([])
+    guess.randomize(4,colors)
+    secretcode.evaluate(guess).display()
