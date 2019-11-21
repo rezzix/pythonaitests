@@ -12,14 +12,15 @@ from random import randrange
 colors = ('red', 'blue', 'green', 'yellow' ,'orange' ,'purple')
 
 class Code:
-    def __init__(self, values):
+    def __init__(self, values=None):
         self.code = []
+        if (values is None) :
+            for indx in range(4):
+                self.code.append(colors[randrange(0, len(colors))])
+            return
         for indx in range(len(values)):
             self.code.append(values[indx])
-    def randomize(self, length, choices):
-        self.code=[]
-        for indx in range(length):
-            self.code.append(choices[randrange(0, len(choices))])
+        
     def evaluate(self, guess):
         eval = Evaluation()
         for valx in range(len(guess)):
@@ -60,17 +61,21 @@ class Evaluation:
     def display(self):
         print ("Inplace : {}, Existing : {}".format(self.inplace, self.existing))
 
-
+class Solver:
+    def displaySolution(self):
+        if self.solution is not None:
+            print("perfect code using {} guesses and skipping {} : {}".format(self.usedguesses, self.skippedguesses, self.solution.code))
+        else:
+            print("not found using {} guesses and skipping {}".format(self.usedguesses, self.skippedguesses))
 # Stupid solver only uses memory, it will not give the guess twice
-class StupidSolver:
+class StupidSolver(Solver):
     def solve(self, code):
         guesses = []
         evaluations = []
         eval = Evaluation()
 
         while not eval.perfect() :
-            guess = Code([])
-            guess.randomize(4,colors)
+            guess = Code()
             if any(guess.equals(g) for g in guesses):
                 continue
             guesses.append(guess)
@@ -79,23 +84,22 @@ class StupidSolver:
             eval = code.evaluate(guess.code)
             evaluations.append(eval)
 
-        if eval.perfect():
-            print("perfect code using {} guesses".format(len(guesses)))
-        else:
-            print("not found using {} guesses".format(len(guesses)))
-        guesses[len(guesses)-1].display() 
+        self.solution = guesses[len(guesses)-1]
+        self.usedguesses = len(guesses)
+        self.skippedguesses = 0
 
 # Verifier solver will check against available results before making a guess
-class VerifierSolver:
-    def solve(self, code):
+class VerifierSolver(Solver):
+    def solve(self, code, firstguess=None):
         guesses = []
         badguesses = []
         evaluations = []
         eval = Evaluation()
+        nextguess = firstguess
 
         while len(guesses) + len(badguesses) <= 6**4 and not eval.perfect() :
-            guess = Code([])
-            guess.randomize(4,colors)
+            guess = nextguess if nextguess is not None else Code()
+            nextguess = None
             if any(guess.equals(g) for g in guesses):
                 continue
             if any(guess.equals(g) for g in badguesses):
@@ -112,24 +116,19 @@ class VerifierSolver:
             guesses.append(guess)
             eval = code.evaluate(guess.code)
             evaluations.append(eval)
-            guess.display()
-            eval.display()
+        self.solution = guesses[len(guesses)-1]
+        self.usedguesses = len(guesses)
+        self.skippedguesses = len(badguesses)
 
-        if eval.perfect():
-            print("perfect code using {} guesses and skipping {}".format(len(guesses), len(badguesses)))
-        else:
-            print("not found using {} guesses and skipping {}".format(len(guesses), len(badguesses)))
-        guesses[len(guesses)-1].display()     
-
-#secretcode = Code({colors[randrange(0, 6)],colors[randrange(0, 6)],colors[randrange(0, 6)],colors[randrange(0, 6)]]})
-secretcode = Code(['red', 'yellow', 'orange', 'orange'])
+secretcode = Code()
 secretcode.display()
 
 print('\nStupid solver processing : \n')
 solver1 = StupidSolver()
 solver1.solve(secretcode)
+solver1.displaySolution()
 
 print('\nVerifier solver processing : \n')
 solver2 = VerifierSolver()
-solver2.solve(secretcode)
-
+solver2.solve(secretcode,Code(["red","red","orange","orange"]))
+solver2.displaySolution()
