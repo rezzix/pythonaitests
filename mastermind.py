@@ -29,7 +29,7 @@ class Code:
                 eval.inplace += 1
                 continue
             
-            if guess[valx] in self.code :
+            if guess[valx] in self.code and guess[valx] != self.code[valx] :
                 eval.existing += 1
                 continue
         return eval
@@ -62,73 +62,172 @@ class Evaluation:
         print ("Inplace : {}, Existing : {}".format(self.inplace, self.existing))
 
 class Solver:
+    def __init__(self):
+        self.guesses = []
+        self.badguesses = []
+        self.evaluations = []
+        
     def displaySolution(self):
         if self.solution is not None:
-            print("perfect code using {} guesses and skipping {} : {}".format(self.usedguesses, self.skippedguesses, self.solution.code))
+            print("perfect code using {} guesses and skipping {} : {}".format(len(self.guesses), len(self.badguesses), self.solution.code))
         else:
-            print("not found using {} guesses and skipping {}".format(self.usedguesses, self.skippedguesses))
+            print("not found using {} guesses and skipping {}".format(len(self.guesses), len(self.badguesses)))
 # Stupid solver only uses memory, it will not give the guess twice
 class StupidSolver(Solver):
     def solve(self, code):
-        guesses = []
-        evaluations = []
         eval = Evaluation()
-
         while not eval.perfect() :
             guess = Code()
-            if any(guess.equals(g) for g in guesses):
+            if any(guess.equals(g) for g in self.guesses):
                 continue
-            guesses.append(guess)
-            if len(guesses)==6**4:
+            self.guesses.append(guess)
+            if len(self.guesses)==6**4:
                 break
             eval = code.evaluate(guess.code)
-            evaluations.append(eval)
+            self.evaluations.append(eval)
 
-        self.solution = guesses[len(guesses)-1]
-        self.usedguesses = len(guesses)
-        self.skippedguesses = 0
+        self.solution = self.guesses[len(self.guesses)-1]
 
 # Verifier solver will check against available results before making a guess
 class VerifierSolver(Solver):
     def solve(self, code, firstguess=None):
-        guesses = []
-        badguesses = []
-        evaluations = []
-        eval = Evaluation()
         nextguess = firstguess
-
-        while len(guesses) + len(badguesses) <= 6**4 and not eval.perfect() :
+        eval = Evaluation()
+        while len(self.guesses) + len(self.badguesses) <= 6**4 and not eval.perfect() :
             guess = nextguess if nextguess is not None else Code()
             nextguess = None
-            if any(guess.equals(g) for g in guesses):
+            if any(guess.equals(g) for g in self.guesses):
                 continue
-            if any(guess.equals(g) for g in badguesses):
+            if any(guess.equals(g) for g in self.badguesses):
                 continue
             # good guess based on history
             goodguess = True
-            for indx in range(len(guesses)):
-                if not guess.evaluate(guesses[indx].code).equals(evaluations[indx]):
+            for indx in range(len(self.guesses)):
+                if not guess.evaluate(self.guesses[indx].code).equals(self.evaluations[indx]):
                     goodguess = False
                     break
             if not goodguess :
-                badguesses.append(guess)
+                self.badguesses.append(guess)
                 continue
-            guesses.append(guess)
+            self.guesses.append(guess)
             eval = code.evaluate(guess.code)
-            evaluations.append(eval)
-        self.solution = guesses[len(guesses)-1]
-        self.usedguesses = len(guesses)
-        self.skippedguesses = len(badguesses)
+            self.evaluations.append(eval)
+        self.solution = self.guesses[len(self.guesses)-1]
+        self.usedguesses = len(self.guesses)
+    def stepsolve(self, eval):
+        if eval is None:
+            guess = Code()
+            self.guesses.append(guess) 
+            return guess
+        self.evaluations.append(eval)
+        guess=None
+        goodguess = False
+        # fixme add condition to break if too much guesses, means that evaluations where wrong
+        while not goodguess :
+            guess=nextcode(guess)
+            goodguess = True
+            for indx in range(len(self.guesses)):
+                if not guess.evaluate(self.guesses[indx].code).equals(self.evaluations[indx]):
+                    goodguess = False
+                    break
+            if not goodguess :
+                self.badguesses.append(guess)
+                continue
+            else : 
+                self.guesses.append(guess)
+        return guess
+
+def testResolvers(secretcode, xtimes):
+    print('\nStupid solver processing {} times: \n'.format(xtimes))
+    solver1guesses = []
+    for i in range(xtimes):
+        solver1 = StupidSolver()
+        solver1.solve(secretcode)
+        solver1guesses.append(len(solver1.guesses))
+
+    print (" -> average in series of used guesses : {}".format(sum(solver1guesses)/len(solver1guesses)))
+
+    print('\nVerifier solver processing with random init {} times: \n'.format(xtimes))
+    solver2guesses = []
+    for i in range(xtimes):
+        solver2 = VerifierSolver()
+        solver2.solve(secretcode)
+        solver2guesses.append(len(solver2.guesses))
+
+    print (" -> average in series of used guesses : {}".format((sum(solver2guesses)+0.0)/len(solver2guesses)))
+
+
+    print('\nVerifier solver processing with 2 colors init {} times: \n'.format(xtimes))
+    solver2guesses = []
+    for i in range(xtimes):
+        solver2 = VerifierSolver()
+        solver2.solve(secretcode,Code(["red","red","orange","orange"]))
+        solver2guesses.append(len(solver2.guesses))
+
+    print (" -> average in series of used guesses : {}".format((sum(solver2guesses)+0.0)/len(solver2guesses)))
+
+    print('\nVerifier solver processing with 3 colors init {} times: \n'.format(xtimes))
+    solver2guesses = []
+    for i in range(xtimes):
+        solver2 = VerifierSolver()
+        solver2.solve(secretcode,Code(["red","red","blue","orange"]))
+        solver2guesses.append(len(solver2.guesses))
+
+    print (" -> average in series of used guesses : {}".format((sum(solver2guesses)+0.0)/len(solver2guesses)))
+
+    print('\nVerifier solver processing with 4 colors init {} times: \n'.format(xtimes))
+    solver2guesses = []
+    for i in range(xtimes):
+        solver2 = VerifierSolver()
+        solver2.solve(secretcode,Code(["red","green","blue","orange"]))
+        solver2guesses.append(len(solver2.guesses))
+
+    print (" -> average in series of used guesses : {}".format((sum(solver2guesses)+0.0)/len(solver2guesses)))
+
+def nextcode(code):
+    if code is None:
+        return Code()
+    if code.equals(Code([colors[-1],colors[-1],colors[-1],colors[-1]])):
+        return Code([colors[0],colors[0],colors[0],colors[0]])
+    ret=Code(code.code)
+    for indx in range(len(ret.code)):
+        if colors.index(ret.code[indx]) < (len(colors)-1):
+            ret.code[indx] = colors[colors.index(ret.code[indx])+1]
+            break
+        else:
+            ret.code[indx] = colors[0]
+            continue
+    return ret
+
+def play():
+    print ("write down your code exemple ['red','blue','orange','green']")
+    print ("now you'll evaluate my guess")
+    eval = None
+    vs = VerifierSolver()
+
+    while eval is None or not eval.perfect() :
+        guess = vs.stepsolve(eval)
+        guess.display()
+        print ("guess : ")
+        eval = Evaluation()
+        eval.inplace = input  ("-> in correct place ?             ")
+        eval.existing = input ("-> existing but in wrong place ?  ")
+        
+        if eval.perfect():
+            print ('found it')
+            break
+    
+        
+        
+
+
+
 
 secretcode = Code()
 secretcode.display()
 
-print('\nStupid solver processing : \n')
-solver1 = StupidSolver()
-solver1.solve(secretcode)
-solver1.displaySolution()
+#solver = VerifierSolver()
+#solver.solve(secretcode)
+#solver.displaySolution()
+play()
 
-print('\nVerifier solver processing : \n')
-solver2 = VerifierSolver()
-solver2.solve(secretcode,Code(["red","red","orange","orange"]))
-solver2.displaySolution()
