@@ -122,11 +122,16 @@ class VerifierSolver(Solver):
         self.evaluations.append(eval)
         guess=None
         goodguess = False
+        codestried = 0
         # fixme add condition to break if too much guesses, means that evaluations where wrong
         while not goodguess :
             guess=nextcode(guess)
             goodguess = True
+            codestried +=1
             for indx in range(len(self.guesses)):
+                if codestried>6**4 :
+                    print("resolution impossible, there should be a mistake in evaluations")
+                    quit()
                 if not guess.evaluate(self.guesses[indx].code).equals(self.evaluations[indx]):
                     goodguess = False
                     break
@@ -210,8 +215,14 @@ def play():
         guess.display()
         print ("guess : ")
         eval = Evaluation()
-        eval.inplace = input  ("-> in correct place ?             ")
-        eval.existing = input ("-> existing but in wrong place ?  ")
+        while True:
+            eval.inplace = input  ("-> in correct place (0 to 4)            ?  ")
+            if eval.inplace>=0 and eval.inplace<=4 :
+                break
+        while True:    
+            eval.existing = input ("-> existing but in wrong place (0 to 4) ?  ")
+            if eval.existing>=0 and eval.existing<=4 :
+                break
         
         if eval.perfect():
             print ('found it')
